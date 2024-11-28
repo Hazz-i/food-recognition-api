@@ -262,14 +262,17 @@ def food_clasification():
             "fat": "{:.2f} g".format(fat)
         }
 
-        alert = (
-            "Suitable for diabetes" 
-            if (carbohydrates < max_carbs and 
-                calories < max_calories and 
-                proteins < max_protein and 
-                fat < max_fat)
-            else "Not recommended for diabetes"
-        )
+        
+
+        if carbohydrates == 0 and calories == 0 and proteins == 0 and fat == 0:
+            alert = "Food not found"
+        elif (carbohydrates < max_carbs and 
+            calories < max_calories and 
+            proteins < max_protein and 
+            fat < max_fat):
+            alert = "Suitable for diabetes"
+        else:
+            alert = "Not recommended for diabetes"
         
         return jsonify({
             "food_name": food_name,
