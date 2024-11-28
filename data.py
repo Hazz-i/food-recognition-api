@@ -2,11 +2,7 @@ import requests
 import numpy as np
 from bs4 import BeautifulSoup
 
-import requests
-import requests
 from PIL import Image
-import numpy as np
-from tensorflow.keras.preprocessing import image
 from io import BytesIO
 
 # conver to gram
