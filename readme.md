@@ -9,7 +9,6 @@
 2. Set up virtual env :
 
    ```bash
-   cd flask-server
    python -m venv .venv
    ```
 
@@ -19,7 +18,7 @@
    source .venv/scripts/activate
    ```
 
-4. Intall library
+4. Install library
 
    ```bash
    pip install -r requirements.txt
@@ -35,11 +34,8 @@
 
 ```bash
 ROOT/
-├── flask-server/
-│   ├── dataset/          # Directory for .csv datasets
-│   ├── model/            # Directory for ML models
-│   ├── data.py           # Python script for handling logic
-│   └── main.py           # Flask server application
-│
-└── *.ipnyb               # preprocessing model
+├── dataset/          # Directory for .csv datasets
+├── model/            # Directory for ML models
+├── data.py           # Python script for handling logic
+└── main.py           # Flask server application
 ```

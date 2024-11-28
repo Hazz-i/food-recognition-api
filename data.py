@@ -1,7 +1,53 @@
 import requests
 import numpy as np
 from bs4 import BeautifulSoup
-# from keras.preprocessing.image import load_img, img_to_array
+
+import requests
+import requests
+from PIL import Image
+import numpy as np
+from tensorflow.keras.preprocessing import image
+from io import BytesIO
+
+# conver to gram
+def convert_weight_to_grams(weight):
+    """
+    Parameters:
+        - weight (str): The weight string, e.g., "500mg", "1.2kg", "3t".
+        
+    Returns:
+        - float: The converted weight in grams.
+    """
+    try:
+        # Normalize input (lowercase and strip spaces)
+        weight = weight.lower().strip()
+
+        if "µg" in weight or "ug" in weight:
+            value = float(weight.replace("µg", "").replace("ug", "").strip())
+            return value / 1_000_000
+
+        elif "mg" in weight:
+            value = float(weight.replace("mg", "").strip())
+            return value / 1000
+        
+        elif "kg" in weight:
+            value = float(weight.replace("kg", "").strip())
+            return value * 1000
+
+        elif "g" in weight:
+            value = float(weight.replace("g", "").strip())
+            return value
+
+        elif "t" in weight:
+            value = float(weight.replace("t", "").strip())
+            return value * 1_000_000
+
+        else:
+            raise ValueError("Unit not recognized. Please use mg, g, kg, or t.")
+
+    except Exception as e:
+        raise ValueError(f"Invalid weight format: {e}")
+
 
 # filter the food for diabetic patient
 def filter_food(df, max_calories=None, max_carbohydrate=None, max_fat=None, max_protein=None):
@@ -53,16 +99,47 @@ def fetch_nutritions(prediction):
         carb_scrap = BeautifulSoup(carb_req, 'html.parser')
         fat_scrap = BeautifulSoup(fat_req, 'html.parser')
 
-        results = {}
+        # Extracting data or assigning default value (0)
+        def extract_value(scrap, class_name="BNeawe iBp4i AP7Wnd"):
+            element = scrap.find("div", class_=class_name)
+            return element.text if element else "0 g"  # Default value
 
-        for scrap, key in zip([proteins_scrap, calories_scrap, carb_scrap, fat_scrap], ["proteins", "calories", "carbohydrates", "fat"]):   
-            results[key] = scrap.find("div", class_="BNeawe iBp4i AP7Wnd").text
-            
-        return (
-            results["proteins"],
-            results["calories"],
-            results["carbohydrates"],
-            results["fat"]
-        )
+        proteins = extract_value(proteins_scrap)
+        calories = extract_value(calories_scrap)
+        carbohydrates = extract_value(carb_scrap)
+        fat = extract_value(fat_scrap)
+
+        return proteins, calories, carbohydrates, fat
     except Exception as e:
         return f"error: {e}"
+
+# Load and preprocess the input image
+def load_and_preprocess_image(img_path, img_size=(224, 224)):
+    # Load the image with the target size
+    response = requests.get(img_path)
+    img = Image.open(BytesIO(response.content))
+
+    # Resize image
+    img = img.resize(img_size)
+
+    # Convert the image to a numpy array
+    img_array = np.array(img)
+
+    # Jika gambar memiliki 4 channel (RGBA), ubah menjadi RGB
+    if img_array.shape[-1] == 4:
+        img_array = img_array[..., :3]
+
+    # Normalize the image (scaling pixel values to [0, 1])
+    img_array = img_array / 255.0
+
+    # # Expand the dimensions to create a batch of size 1
+    img_array = np.expand_dims(img_array, axis=0)
+
+    return img_array
+
+
+def safe_convert(value, unit):
+    try:
+        return float(value.replace(unit, "").strip().replace(",", "."))
+    except (ValueError, AttributeError):
+        return 0.0  
