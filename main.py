@@ -239,13 +239,14 @@ def food_clasification():
         volume_convert = convert_weight_to_grams(volume)
 
     try:
-        proteins, calories, carbohydrates, fat = fetch_nutritions(food_name)
+        proteins, calories, carbohydrates, fat, sugar = fetch_nutritions(food_name)
 
         # Convert values to floats to avoid type mismatch
         proteins = safe_convert(proteins, "g")
         calories = safe_convert(calories, "kcal")
         carbohydrates = safe_convert(carbohydrates, "g")
         fat = safe_convert(fat, "g")
+        sugar = safe_convert(sugar, "g")
         
         # Ensure volume is a valid number
         volume_convert = float(volume_convert / 100) if volume is not None else 1
@@ -254,17 +255,19 @@ def food_clasification():
         calories *= volume_convert
         carbohydrates *= volume_convert
         fat *= volume_convert
+        sugar *= volume_convert
 
         nutrition_info = {
             "proteins": "{:.2f} g".format(proteins),
             "calories": "{:.2f} kcal".format(calories),
             "carbohydrates": "{:.2f} g".format(carbohydrates),
-            "fat": "{:.2f} g".format(fat)
+            "fat": "{:.2f} g".format(fat),
+            "sugar": "{:.2f} g".format(sugar)
         }
 
         
 
-        if carbohydrates == 0 and calories == 0 and proteins == 0 and fat == 0:
+        if carbohydrates == 0 and calories == 0 and proteins == 0 and fat == 0 and sugar == 0:
             alert = "Food not found"
         elif (carbohydrates < max_carbs and 
             calories < max_calories and 
