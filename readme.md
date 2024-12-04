@@ -39,3 +39,7 @@ ROOT/
 ├── data.py           # Python script for handling logic
 └── main.py           # Flask server application
 ```
+
+## **DOKUMENTASI API**
+
+https://documenter.getpostman.com/view/32835700/2sAYBUFDKL
