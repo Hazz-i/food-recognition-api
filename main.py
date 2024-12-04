@@ -4,6 +4,7 @@ from flask_cors import CORS
 import xgboost as xgb
 import sklearn
 import tensorflow as tf
+from ultralytics import YOLO
 from sklearn.preprocessing import StandardScaler
 
 import pandas as pd
@@ -12,7 +13,7 @@ import numpy as np
 import os
 import joblib
 
-from data import filter_food, generate_combinations, fetch_nutritions, convert_weight_to_grams, load_and_preprocess_image, safe_convert
+from data import filter_food, generate_combinations, fetch_nutritions, convert_weight_to_grams, safe_convert, load_yolo_model
 
 
 app = Flask(__name__)
@@ -22,6 +23,7 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(ROOT_DIR, "dataset")
 DIABET_FOOD_PATH = os.path.join(DATA_DIR, "diabet_food_recomendation_clean.csv")
 NUTRITION_PATH = os.path.join(DATA_DIR, "nutrition.csv")
+MODEL_DIR = os.path.join(ROOT_DIR, "model")
 
 # Load the saved models and preprocessing tools
 exercise_model = joblib.load("./model/exercise/regressor_model.pkl")
@@ -31,8 +33,6 @@ label_encoder = joblib.load("./model/exercise/label_encoder.pkl")
 
 diabetes_model = joblib.load("./model/diabetes/xgb_model_diabetes.pkl")
 diabetes_scaler = joblib.load("./model/diabetes/scaler_diabetes.pkl")
-
-food_classification_model = tf.keras.models.load_model("./model/food_classify/FoodImageRecog.h5")
 
 # Get max valuue for diabetes food recommendation
 diabet_food_df = pd.read_csv(DIABET_FOOD_PATH)
@@ -195,11 +195,37 @@ def food_recommendation():
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 # Food clasifications
-@app.route("/food_classification", methods=["POST"])
+@app.route("/scan-food", methods=["POST"])
+def food_detection():
+    """
+    Parameters:
+        - image : image url
+
+    Returns:
+        - Detected objects
+    """
+    data = request.json
+    image = data.get('image')
+
+    if image is None:
+        return jsonify({"error": "The 'image' field must be provided"}), 400
+
+    try:
+        outputs = load_yolo_model("./model/food_classification/model.pt", image)
+
+        response = {
+            "objects": outputs
+        }
+
+        return jsonify(response)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route("/food_nutritions", methods=["POST"])
 def food_clasification():
     """
     Parameters:
-        - features : [images of food, name food, volume]
+        - features : [food_name, volume (optional)]
 
     Returns:
         - food name
@@ -209,31 +235,11 @@ def food_clasification():
     """
     
     data = request.json
-    image = data.get('image')
     food_name = data.get('name')
     volume = data.get('volume')
 
-    class_names = ['Abon', 'Chiken', 'Cumi', 'Beef', 'Gorengan', 'Ikan', 'Kerupuk', 'Mie',
-                   'Rice', 'shrimp', 'Sambal', 'Sate', 'Sayur Hijau', 'Tempeh', 'Egg',
-                   'Tofu', 'Olahan Daging']
-
-    if not image and not food_name:
-        return jsonify({"error": "Either 'image' or 'name' must be provided."}), 400
-
-    if image is not None:
-        img_array = load_and_preprocess_image(image)
-
-        # Make a prediction using the model
-        predictions = food_classification_model.predict(img_array)
-
-        # Get the predicted class (the index with the highest probability)
-        predicted_class_idx = np.argmax(predictions, axis=-1)
-
-        # Print the prediction result
-        food_name = class_names[predicted_class_idx[0]]
-
     if not food_name:
-        return jsonify({"error": "Food name could not be determined."}), 400
+        return jsonify({"error": "'food_name' must be provided."}), 400
     
     if volume is not None:
         volume_convert = convert_weight_to_grams(volume)
@@ -264,8 +270,6 @@ def food_clasification():
             "fat": "{:.2f} g".format(fat),
             "sugar": "{:.2f} g".format(sugar)
         }
-
-        
 
         if carbohydrates == 0 and calories == 0 and proteins == 0 and fat == 0 and sugar == 0:
             alert = "Food not found"

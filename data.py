@@ -1,6 +1,7 @@
 import requests
 import numpy as np
 from bs4 import BeautifulSoup
+from ultralytics import YOLO
 
 from PIL import Image
 from io import BytesIO
@@ -74,6 +75,36 @@ def generate_combinations(food_df, num_combinations=2, items_per_combination=5):
         combinations.append(random_selection)
     return combinations
 
+
+# load_model
+def load_yolo_model(model_path, image_url):
+    """Load the saved YOLO model and make predictions on a local image."""
+    
+    response = requests.get(image_url)
+    if response.status_code != 200:
+        raise ValueError("Failed to download the image from the URL.")
+    
+    image = Image.open(BytesIO(response.content))
+    model = YOLO(model_path)
+
+    # Perform prediction on the input image
+    results = model.predict(source=image, save=False, conf=0.25)
+
+    # Format the results
+    formatted_results = []
+    for result in results:
+        detections = {}
+        for box in result.boxes:
+            cls = int(box.cls.cpu().numpy())  # Class index
+            name = model.names[cls]  # Class name
+            if name in detections:
+                detections[name] += 1
+            else:
+                detections[name] = 1
+        formatted_results.append([{"name": k, "unit": v} for k, v in detections.items()])
+
+    return formatted_results
+
 # fetch the nutritions of the food
 def fetch_nutritions(prediction):
     """
@@ -112,31 +143,6 @@ def fetch_nutritions(prediction):
         return proteins, calories, carbohydrates, fat, sugar
     except Exception as e:
         return f"error: {e}"
-
-# Load and preprocess the input image
-def load_and_preprocess_image(img_path, img_size=(224, 224)):
-    # Load the image with the target size
-    response = requests.get(img_path)
-    img = Image.open(BytesIO(response.content))
-
-    # Resize image
-    img = img.resize(img_size)
-
-    # Convert the image to a numpy array
-    img_array = np.array(img)
-
-    # Jika gambar memiliki 4 channel (RGBA), ubah menjadi RGB
-    if img_array.shape[-1] == 4:
-        img_array = img_array[..., :3]
-
-    # Normalize the image (scaling pixel values to [0, 1])
-    img_array = img_array / 255.0
-
-    # # Expand the dimensions to create a batch of size 1
-    img_array = np.expand_dims(img_array, axis=0)
-
-    return img_array
-
 
 def safe_convert(value, unit):
     try:
