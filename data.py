@@ -1,6 +1,6 @@
 import requests
 import numpy as np
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup   
 from ultralytics import YOLO
 
 from PIL import Image
