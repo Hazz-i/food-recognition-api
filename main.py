@@ -153,7 +153,7 @@ def food_recommendation():
 
     try:
         diagnoses = float(diagnoses) / 100
-        diagnoses = 1 if diagnoses >= 0.5 else 0
+        diagnoses = 1 if diagnoses >= 0.18 else 0
 
         print(diagnoses)
     except (ValueError, TypeError):
